@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload & Analyse - CODAGE11 3D Pricer</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="/css/main.css" rel="stylesheet">
+    <link href="/css/upload.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/">
+                <i class="fas fa-cube me-2"></i>CODAGE11 3D Pricer
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Accueil</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/upload">Upload</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/viewer">Visualiseur 3D</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/pricing">Devis</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid py-4">
+        <div class="row">
+            <!-- Upload Panel -->
+            <div class="col-lg-4">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-upload me-2"></i>Upload de Fichier</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- File Upload -->
+                        <div id="uploadArea" class="drop-zone border-2 border-dashed border-primary rounded p-4 text-center mb-4">
+                            <input type="file" id="fileInput" class="d-none" accept=".stl,.obj,.ply,.step,.stp" onchange="handleFileUpload(event)">
+                            <i class="fas fa-cloud-upload-alt fa-2x text-primary mb-2"></i>
+                            <p class="mb-2">Glissez votre fichier 3D ici</p>
+                            <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('fileInput').click()">
+                                Choisir un fichier
+                            </button>
+                        </div>
+
+                        <!-- File Info -->
+                        <div id="fileInfo" class="d-none">
+                            <div class="alert alert-success">
+                                <i class="fas fa-file-alt me-2"></i>
+                                <strong id="fileName">Fichier chargé</strong><br>
+                                <small id="fileSize" class="text-muted">Taille: </small>
+                            </div>
+                        </div>
+
+                        <!-- Print Parameters -->
+                        <div id="printParameters" class="d-none">
+                            <h6 class="fw-bold mb-3">Paramètres d'Impression</h6>
+                            
+                            <!-- Material Selection -->
+                            <div class="mb-3">
+                                <label for="materialSelect" class="form-label">Matériau</label>
+                                <select id="materialSelect" class="form-select" onchange="updatePricing()">
+                                    <option value="PLA">PLA (Standard)</option>
+                                    <option value="ABS">ABS (Haute résistance)</option>
+                                    <option value="PETG">PETG (Résistant chimique)</option>
+                                    <option value="TPU">TPU (Flexible)</option>
+                                </select>
+                            </div>
+
+                            <!-- Infill -->
+                            <div class="mb-3">
+                                <label for="infillSlider" class="form-label">
+                                    Remplissage: <span id="infillValue">20%</span>
+                                </label>
+                                <input type="range" class="form-range" id="infillSlider" 
+                                       min="10" max="100" step="5" value="20" 
+                                       oninput="updateInfillValue(); updatePricing()">
+                            </div>
+
+                            <!-- Layer Height -->
+                            <div class="mb-3">
+                                <label for="layerHeightSelect" class="form-label">Hauteur de couche</label>
+                                <select id="layerHeightSelect" class="form-select" onchange="updatePricing()">
+                                    <option value="0.1">0.1mm (Haute qualité)</option>
+                                    <option value="0.2" selected>0.2mm (Standard)</option>
+                                    <option value="0.3">0.3mm (Rapide)</option>
+                                </select>
+                            </div>
+
+                            <!-- Supports -->
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="supportsCheck" onchange="updatePricing()">
+                                    <label class="form-check-label" for="supportsCheck">
+                                        Utiliser des supports
+                                    </label>
+                                </div>
+                                <small class="text-muted">Détection automatique basée sur la géométrie</small>
+                            </div>
+
+                            <!-- Analyze Button -->
+                            <button id="analyzeBtn" class="btn btn-success w-100" onclick="analyzeFile()">
+                                <i class="fas fa-cogs me-2"></i>Analyser & Calculer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analysis Results -->
+                <div id="analysisCard" class="card shadow-sm d-none">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Analyse 3D</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="analysisResults">
+                            <!-- Results will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preview & Pricing Panel -->
+            <div class="col-lg-8">
+                <!-- 3D Preview Card -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-eye me-2"></i>Prévisualisation 3D</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="preview3D" class="preview-container bg-light d-flex align-items-center justify-content-center">
+                            <div class="text-center text-muted">
+                                <i class="fas fa-cube fa-3x mb-3"></i>
+                                <p>Chargez un fichier 3D pour voir la prévisualisation</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pricing Card -->
+                <div id="pricingCard" class="card shadow-sm d-none">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0"><i class="fas fa-euro-sign me-2"></i>Calcul de Prix</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="pricingResults">
+                            <!-- Pricing results will be populated here -->
+                        </div>
+                        
+                        <div class="text-center mt-4">
+                            <button class="btn btn-primary me-2" onclick="saveQuote()">
+                                <i class="fas fa-save me-2"></i>Sauvegarder le devis
+                            </button>
+                            <a href="/viewer" class="btn btn-outline-primary">
+                                <i class="fas fa-eye me-2"></i>Visualisation avancée
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Modal -->
+    <div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center p-5">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                    <h5>Analyse en cours...</h5>
+                    <p class="text-muted mb-0">Calcul du volume, de la complexité et du prix</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alertContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 1050;"></div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+    <!-- Custom JS -->
+    <script src="/js/main.js"></script>
+    <script src="/js/file-handler.js"></script>
+    <script src="/js/3d-viewer.js"></script>
+    <script src="/js/pricing-calculator.js"></script>
+</body>
+</html>
